@@ -22,3 +22,15 @@ export async function requireAuth(request: NextRequest): Promise<JwtPayload> {
     throw new UnauthorizedError("Invalid or expired token");
   }
 }
+
+/**
+ * Like requireAuth, but additionally enforces that the caller has the ADMIN role.
+ * Throws UnauthorizedError (403-ish) when the user is authenticated but not admin.
+ */
+export async function requireAdmin(request: NextRequest): Promise<JwtPayload> {
+  const payload = await requireAuth(request);
+  if (payload.role !== "ADMIN") {
+    throw new UnauthorizedError("Se requiere rol de administrador");
+  }
+  return payload;
+}

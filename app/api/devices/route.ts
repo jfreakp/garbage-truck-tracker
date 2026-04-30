@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server";
-import { requireAuth } from "@/lib/auth-context";
+import { requireAuth, requireAdmin } from "@/lib/auth-context";
 import { createDeviceSchema } from "@/modules/devices/devices.schemas";
 import { createDevice, listDevices } from "@/modules/devices/devices.service";
 import { handleError } from "@/lib/errors";
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAuth(request);
+    await requireAdmin(request);
     const body  = await request.json();
     const input = createDeviceSchema.parse(body);
     const device = await createDevice(input);

@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server";
-import { requireAuth } from "@/lib/auth-context";
+import { requireAuth, requireAdmin } from "@/lib/auth-context";
 import { updateDeviceSchema } from "@/modules/devices/devices.schemas";
 import { deleteDevice, getDevice, updateDevice } from "@/modules/devices/devices.service";
 import { handleError } from "@/lib/errors";
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
 
 export async function PATCH(request: NextRequest, { params }: Ctx) {
   try {
-    await requireAuth(request);
+    await requireAdmin(request);
     const { id } = await params;
     const body  = await request.json();
     const input = updateDeviceSchema.parse(body);
@@ -32,7 +32,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 
 export async function DELETE(request: NextRequest, { params }: Ctx) {
   try {
-    await requireAuth(request);
+    await requireAdmin(request);
     const { id } = await params;
     await deleteDevice(Number(id));
     return Response.json({ success: true });

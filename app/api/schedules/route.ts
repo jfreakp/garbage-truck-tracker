@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server";
-import { requireAuth } from "@/lib/auth-context";
+import { requireAuth, requireAdmin } from "@/lib/auth-context";
 import { handleError } from "@/lib/errors";
 import { createScheduleSchema } from "@/modules/schedules/schedules.schemas";
 import { createSchedule, listSchedules } from "@/modules/schedules/schedules.service";
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAuth(request);
+    await requireAdmin(request);
     const body  = await request.json();
     const input = createScheduleSchema.parse(body);
     const schedule = await createSchedule(input);

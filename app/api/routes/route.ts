@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server";
-import { requireAuth } from "@/lib/auth-context";
+import { requireAuth, requireAdmin } from "@/lib/auth-context";
 import { createRouteSchema } from "@/modules/routes/routes.schemas";
 import { createRoute, listRoutes } from "@/modules/routes/routes.service";
 import { handleError } from "@/lib/errors";
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAuth(request);
+    await requireAdmin(request);
     const body = await request.json();
     const input = createRouteSchema.parse(body);
     const route = await createRoute(input);

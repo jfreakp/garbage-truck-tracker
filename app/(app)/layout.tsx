@@ -6,29 +6,41 @@ import Link from "next/link";
 import { clearToken } from "@/lib/api-client";
 import ScheduleWidget from "@/components/ScheduleWidget";
 
-const NAV = [
-  { href: "/map",       icon: "map",                  label: "Mapa"     },
-  { href: "/trucks",    icon: "local_shipping",       label: "Flota"    },
-  { href: "/devices",   icon: "smartphone",           label: "Equipos"  },
-  { href: "/barrios",   icon: "holiday_village",      label: "Barrios"  },
-  { href: "/routes",    icon: "route",                label: "Rutas"    },
-  { href: "/schedules", icon: "calendar_month",       label: "Horarios" },
-  { href: "/alerts",    icon: "notifications_active", label: "Alertas"  },
-  { href: "/dashboard", icon: "dashboard",            label: "Panel"    },
-  { href: "/profile",   icon: "person",               label: "Perfil"   },
+const ALL_NAV = [
+  { href: "/map",       icon: "map",                  label: "Mapa",     adminOnly: false },
+  { href: "/trucks",    icon: "local_shipping",       label: "Flota",    adminOnly: true  },
+  { href: "/devices",   icon: "smartphone",           label: "Equipos",  adminOnly: true  },
+  { href: "/barrios",   icon: "holiday_village",      label: "Barrios",  adminOnly: true  },
+  { href: "/routes",    icon: "route",                label: "Rutas",    adminOnly: true  },
+  { href: "/schedules", icon: "calendar_month",       label: "Horarios", adminOnly: true  },
+  { href: "/alerts",    icon: "notifications_active", label: "Alertas",  adminOnly: true  },
+  { href: "/dashboard", icon: "dashboard",            label: "Panel",    adminOnly: true  },
+  { href: "/profile",   icon: "person",               label: "Perfil",   adminOnly: false },
 ];
+
+const ADMIN_PATHS = ALL_NAV.filter((n) => n.adminOnly).map((n) => n.href);
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router   = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; email: string; role?: string } | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("eco_token");
     if (!token) { router.replace("/login"); return; }
     const raw = localStorage.getItem("eco_user");
-    if (raw) setUser(JSON.parse(raw));
-  }, [router]);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      setUser(parsed);
+      // Redirect USER role away from admin-only pages
+      if (parsed.role !== "ADMIN" && ADMIN_PATHS.some((p) => pathname.startsWith(p))) {
+        router.replace("/map");
+      }
+    }
+  }, [router, pathname]);
+
+  const isAdmin = user?.role === "ADMIN";
+  const NAV     = ALL_NAV.filter((n) => !n.adminOnly || isAdmin);
 
   function logout() {
     clearToken();

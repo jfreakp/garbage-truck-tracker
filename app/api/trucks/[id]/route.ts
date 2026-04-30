@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server";
-import { requireAuth } from "@/lib/auth-context";
+import { requireAuth, requireAdmin } from "@/lib/auth-context";
 import { getTruck, updateTruck, deleteTruck } from "@/modules/trucks/trucks.service";
 import { updateTruckSchema } from "@/modules/trucks/trucks.schemas";
 import { handleError } from "@/lib/errors";
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest, { params }: Ctx) {
 
 export async function PATCH(request: NextRequest, { params }: Ctx) {
   try {
-    await requireAuth(request);
+    await requireAdmin(request);
     const { id } = await params;
     const body = await request.json();
     const input = updateTruckSchema.parse(body);
@@ -32,7 +32,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 
 export async function DELETE(request: NextRequest, { params }: Ctx) {
   try {
-    await requireAuth(request);
+    await requireAdmin(request);
     const { id } = await params;
     await deleteTruck(Number(id));
     return Response.json({ success: true });

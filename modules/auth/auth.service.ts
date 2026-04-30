@@ -32,6 +32,7 @@ export async function register(input: RegisterInput) {
       id: true,
       name: true,
       email: true,
+      role: true,
       lat: true,
       lng: true,
       barrioId: true,
@@ -39,7 +40,7 @@ export async function register(input: RegisterInput) {
     },
   });
 
-  const token = await signToken({ sub: String(user.id), email: user.email });
+  const token = await signToken({ sub: String(user.id), email: user.email, role: user.role });
 
   return { user, token };
 }
@@ -47,6 +48,7 @@ export async function register(input: RegisterInput) {
 export async function login(input: LoginInput) {
   const user = await prisma.user.findUnique({
     where: { email: input.email },
+    // role is needed to include it in the JWT
   });
 
   if (!user) {
@@ -59,7 +61,7 @@ export async function login(input: LoginInput) {
     throw new UnauthorizedError("Invalid credentials");
   }
 
-  const token = await signToken({ sub: String(user.id), email: user.email });
+  const token = await signToken({ sub: String(user.id), email: user.email, role: user.role });
 
   const { password: _, ...safeUser } = user;
 

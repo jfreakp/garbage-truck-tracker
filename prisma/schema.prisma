@@ -33,6 +33,7 @@ model User {
   name      String
   email     String   @unique
   password  String   // bcrypt hash
+  role      UserRole @default(USER)
   lat       Float?
   lng       Float?
   fcmToken  String?
@@ -143,6 +144,11 @@ model LocationHistory {
 enum NotificationType {
   ENTRY
   NEAR
+}
+
+enum UserRole {
+  ADMIN
+  USER
 }
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server";
-import { requireAuth } from "@/lib/auth-context";
+import { requireAdmin } from "@/lib/auth-context";
 import { handleError, AppError } from "@/lib/errors";
 import { updateScheduleSchema } from "@/modules/schedules/schedules.schemas";
 import { deleteSchedule, updateSchedule } from "@/modules/schedules/schedules.service";
@@ -8,7 +8,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: NextRequest, ctx: Ctx) {
   try {
-    await requireAuth(request);
+    await requireAdmin(request);
     const { id } = await ctx.params;
     const numId  = Number(id);
     if (!Number.isInteger(numId) || numId < 1) throw new AppError("ID inválido", 400);
@@ -23,7 +23,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
 
 export async function DELETE(request: NextRequest, ctx: Ctx) {
   try {
-    await requireAuth(request);
+    await requireAdmin(request);
     const { id } = await ctx.params;
     const numId  = Number(id);
     if (!Number.isInteger(numId) || numId < 1) throw new AppError("ID inválido", 400);

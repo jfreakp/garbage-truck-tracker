@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server";
-import { requireAuth } from "@/lib/auth-context";
+import { requireAuth, requireAdmin } from "@/lib/auth-context";
 import { createTruckSchema } from "@/modules/trucks/trucks.schemas";
 import { createTruck, listTrucks } from "@/modules/trucks/trucks.service";
 import { handleError } from "@/lib/errors";
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAuth(request);
+    await requireAdmin(request);
     const body = await request.json();
     const input = createTruckSchema.parse(body);
     const truck = await createTruck(input);

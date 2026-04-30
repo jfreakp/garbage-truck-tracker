@@ -5,10 +5,11 @@ const secret = new TextEncoder().encode(
 );
 
 export interface JwtPayload {
-  sub: string; // user id as string
+  sub:   string;           // user id as string
   email: string;
-  iat?: number;
-  exp?: number;
+  role:  "ADMIN" | "USER";
+  iat?:  number;
+  exp?:  number;
 }
 
 export async function signToken(payload: Omit<JwtPayload, "iat" | "exp">) {
