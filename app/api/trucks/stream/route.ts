@@ -2,6 +2,11 @@ import { type NextRequest } from "next/server";
 import { verifyToken } from "@/lib/jwt";
 import { listTrucks } from "@/modules/trucks/trucks.service";
 
+// Max serverless function duration on Vercel (60 s Hobby / 300 s Pro).
+// EventSource reconnects automatically when the stream closes, so clients
+// are unaffected by the periodic restart.
+export const maxDuration = 60;
+
 const PUSH_INTERVAL_MS = 3000; // push every 3 s
 
 export async function GET(request: NextRequest) {

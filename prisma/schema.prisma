@@ -6,6 +6,8 @@ generator client {
 
 datasource db {
   provider   = "postgresql"
+  url        = env("DATABASE_URL")   // Transaction pooler (port 6543) for runtime queries
+  directUrl  = env("DIRECT_URL")     // Direct connection (port 5432) for prisma migrate
   extensions = [postgis]
 }
 

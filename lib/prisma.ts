@@ -7,6 +7,7 @@ import { PrismaClient } from "../app/generated/prisma/client";
 function createPrismaClient() {
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
+    max: 1, // Serverless: one connection per function instance avoids exhausting Supabase's pool
   });
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
