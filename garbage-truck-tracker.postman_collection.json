@@ -1,0 +1,466 @@
+{
+  "info": {
+    "name": "Garbage Truck Tracker API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Colección completa de endpoints para el sistema de seguimiento de camiones de basura."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string",
+      "description": "JWT obtenido en Login. Se setea automáticamente."
+    },
+    {
+      "key": "deviceToken",
+      "value": "",
+      "type": "string",
+      "description": "Token de dispositivo (64 chars) para envío GPS sin JWT."
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": { "type": "text/javascript", "exec": [""] }
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Juan Torres\",\n  \"email\": \"juan@example.com\",\n  \"password\": \"secret123\",\n  \"lat\": -4.0123,\n  \"lng\": -79.2045,\n  \"barrioId\": null,\n  \"fcmToken\": null\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.token) {",
+                  "  pm.collectionVariables.set('token', res.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"juan@example.com\",\n  \"password\": \"secret123\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Me (perfil propio)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Barrios",
+      "item": [
+        {
+          "name": "Listar barrios",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/barrios", "host": ["{{baseUrl}}"], "path": ["api", "barrios"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear barrio",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/barrios", "host": ["{{baseUrl}}"], "path": ["api", "barrios"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Centro\",\n  \"polygonWkt\": \"POLYGON((-79.21 -4.01, -79.20 -4.01, -79.20 -4.02, -79.21 -4.02, -79.21 -4.01))\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener barrio",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/barrios/1", "host": ["{{baseUrl}}"], "path": ["api", "barrios", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar barrio (nombre)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/barrios/1", "host": ["{{baseUrl}}"], "path": ["api", "barrios", "1"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Centro Histórico\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar barrio (visibleOnMap)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/barrios/1", "host": ["{{baseUrl}}"], "path": ["api", "barrios", "1"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"visibleOnMap\": true\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar barrio",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/barrios/1", "host": ["{{baseUrl}}"], "path": ["api", "barrios", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "GeoJSON de barrios visibles",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/barrios/geodata", "host": ["{{baseUrl}}"], "path": ["api", "barrios", "geodata"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Camiones",
+      "item": [
+        {
+          "name": "Listar camiones",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/trucks", "host": ["{{baseUrl}}"], "path": ["api", "trucks"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear camión",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/trucks", "host": ["{{baseUrl}}"], "path": ["api", "trucks"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Camión 01\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener camión",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/trucks/1", "host": ["{{baseUrl}}"], "path": ["api", "trucks", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar camión",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/trucks/1", "host": ["{{baseUrl}}"], "path": ["api", "trucks", "1"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Camión Norte\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar camión",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/trucks/1", "host": ["{{baseUrl}}"], "path": ["api", "trucks", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar ubicación (JWT admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/trucks/location", "host": ["{{baseUrl}}"], "path": ["api", "trucks", "location"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"truckId\": 1,\n  \"lat\": -4.0123,\n  \"lng\": -79.2045\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar ubicación (Device Token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Device-Token", "value": "{{deviceToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/trucks/location", "host": ["{{baseUrl}}"], "path": ["api", "trucks", "location"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lat\": -4.0123,\n  \"lng\": -79.2045\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Historial de ubicaciones",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/trucks/1/history", "host": ["{{baseUrl}}"], "path": ["api", "trucks", "1", "history"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Stream GPS (SSE)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/trucks/stream?token={{token}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "trucks", "stream"],
+              "query": [{ "key": "token", "value": "{{token}}" }]
+            },
+            "description": "Server-Sent Events. Postman mostrará el stream en la pestaña de respuesta. El token JWT va como query param."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Rutas",
+      "item": [
+        {
+          "name": "Listar rutas",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/routes", "host": ["{{baseUrl}}"], "path": ["api", "routes"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear ruta",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/routes", "host": ["{{baseUrl}}"], "path": ["api", "routes"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ruta Norte\",\n  \"truckId\": 1,\n  \"points\": [\n    [-4.0123, -79.2045],\n    [-4.0200, -79.2100],\n    [-4.0323, -79.2024]\n  ]\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar ruta (reasignar camión)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/routes/1", "host": ["{{baseUrl}}"], "path": ["api", "routes", "1"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"truckId\": 2\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar ruta",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/routes/1", "host": ["{{baseUrl}}"], "path": ["api", "routes", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "GeoJSON de rutas",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/routes/geodata", "host": ["{{baseUrl}}"], "path": ["api", "routes", "geodata"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Dispositivos",
+      "item": [
+        {
+          "name": "Listar dispositivos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/devices", "host": ["{{baseUrl}}"], "path": ["api", "devices"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear dispositivo",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/devices", "host": ["{{baseUrl}}"], "path": ["api", "devices"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tablet Camión 01\",\n  \"truckId\": 1\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener dispositivo",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/devices/1", "host": ["{{baseUrl}}"], "path": ["api", "devices", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar dispositivo",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/devices/1", "host": ["{{baseUrl}}"], "path": ["api", "devices", "1"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tablet Norte\",\n  \"active\": false,\n  \"truckId\": 2\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar dispositivo",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/devices/1", "host": ["{{baseUrl}}"], "path": ["api", "devices", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Regenerar token del dispositivo",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/devices/1/token", "host": ["{{baseUrl}}"], "path": ["api", "devices", "1", "token"] },
+            "description": "Genera un nuevo token de 64 chars e invalida el anterior."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Usuarios",
+      "item": [
+        {
+          "name": "Obtener usuario",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/users/1", "host": ["{{baseUrl}}"], "path": ["api", "users", "1"] },
+            "description": "Solo el propio usuario puede ver su perfil."
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar usuario",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/users/1", "host": ["{{baseUrl}}"], "path": ["api", "users", "1"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Juan P. Torres\",\n  \"lat\": -4.015,\n  \"lng\": -79.203,\n  \"barrioId\": 1,\n  \"fcmToken\": \"token-firebase-aqui\",\n  \"alertProximity\": true,\n  \"alertDelayed\": true,\n  \"alertReminder\": false,\n  \"alertEntry\": true\n}"
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

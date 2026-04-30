@@ -1,0 +1,146 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../app/generated/prisma"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [postgis]
+}
+
+// ---------------------------------------------------------------------------
+// Barrio (neighborhood) – polygon stored as PostGIS geometry
+// ---------------------------------------------------------------------------
+model Barrio {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  // polygon is a PostGIS geometry(Polygon,4326) – managed via raw SQL migrations
+  // We keep a WKT copy in `polygonWkt` for human readability / seeding.
+  visibleOnMap Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  users         User[]
+  trucks        Truck[]
+  notifications NotificationLog[]
+}
+
+// ---------------------------------------------------------------------------
+// User
+// ---------------------------------------------------------------------------
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String   // bcrypt hash
+  lat       Float?
+  lng       Float?
+  fcmToken  String?
+  createdAt DateTime @default(now())
+
+  barrio   Barrio? @relation(fields: [barrioId], references: [id])
+  barrioId Int?
+
+  // Alert preferences
+  alertProximity Boolean @default(true)
+  alertDelayed   Boolean @default(true)
+  alertReminder  Boolean @default(false)
+  alertEntry     Boolean @default(true)
+
+  notifications NotificationLog[]
+
+  @@index([barrioId])
+}
+
+// ---------------------------------------------------------------------------
+// Truck
+// ---------------------------------------------------------------------------
+model Truck {
+  id         Int      @id @default(autoincrement())
+  name       String
+  lat        Float?
+  lng        Float?
+  lastUpdate DateTime @default(now()) @updatedAt
+
+  currentBarrio   Barrio? @relation(fields: [currentBarrioId], references: [id])
+  currentBarrioId Int?
+
+  device          Device?
+  notifications   NotificationLog[]
+  locationHistory LocationHistory[]
+  routes          Route[]
+
+  @@index([currentBarrioId])
+}
+
+// ---------------------------------------------------------------------------
+// Device – celular/tablet atado a un camión (uno a uno)
+// Genera un token único que autoriza el envío de coordenadas GPS.
+// ---------------------------------------------------------------------------
+model Device {
+  id        Int      @id @default(autoincrement())
+  name      String
+  token     String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  truck   Truck @relation(fields: [truckId], references: [id], onDelete: Cascade)
+  truckId Int   @unique
+
+  @@index([token])
+}
+
+// ---------------------------------------------------------------------------
+// NotificationLog – prevents spam
+// ---------------------------------------------------------------------------
+model NotificationLog {
+  id     Int              @id @default(autoincrement())
+  type   NotificationType
+  sentAt DateTime         @default(now())
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  truck   Truck @relation(fields: [truckId], references: [id])
+  truckId Int
+
+  barrio   Barrio @relation(fields: [barrioId], references: [id])
+  barrioId Int
+
+  @@index([userId, truckId, barrioId, type])
+}
+
+// ---------------------------------------------------------------------------
+// Route – planned collection route (path stored as PostGIS LineString)
+// ---------------------------------------------------------------------------
+model Route {
+  id        Int      @id @default(autoincrement())
+  name      String
+  // path is a PostGIS geometry(LineString,4326) – managed via raw SQL migration
+  createdAt DateTime @default(now())
+
+  truck   Truck @relation(fields: [truckId], references: [id], onDelete: Cascade)
+  truckId Int
+
+  @@index([truckId])
+}
+
+// ---------------------------------------------------------------------------
+// LocationHistory – GPS breadcrumb trail per truck
+// ---------------------------------------------------------------------------
+model LocationHistory {
+  id         Int      @id @default(autoincrement())
+  lat        Float
+  lng        Float
+  recordedAt DateTime @default(now())
+
+  truck   Truck @relation(fields: [truckId], references: [id], onDelete: Cascade)
+  truckId Int
+
+  @@index([truckId, recordedAt(sort: Desc)])
+}
+
+enum NotificationType {
+  ENTRY
+  NEAR
+}
