@@ -7,14 +7,15 @@ import { clearToken } from "@/lib/api-client";
 import ScheduleWidget from "@/components/ScheduleWidget";
 
 const NAV = [
-  { href: "/map",       icon: "map",                  label: "Mapa"    },
-  { href: "/trucks",    icon: "local_shipping",       label: "Flota"   },
-  { href: "/devices",   icon: "smartphone",           label: "Equipos" },
-  { href: "/barrios",   icon: "holiday_village",      label: "Barrios" },
-  { href: "/routes",    icon: "route",                label: "Rutas"   },
-  { href: "/alerts",    icon: "notifications_active", label: "Alertas" },
-  { href: "/dashboard", icon: "dashboard",            label: "Panel"   },
-  { href: "/profile",   icon: "person",               label: "Perfil"  },
+  { href: "/map",       icon: "map",                  label: "Mapa"     },
+  { href: "/trucks",    icon: "local_shipping",       label: "Flota"    },
+  { href: "/devices",   icon: "smartphone",           label: "Equipos"  },
+  { href: "/barrios",   icon: "holiday_village",      label: "Barrios"  },
+  { href: "/routes",    icon: "route",                label: "Rutas"    },
+  { href: "/schedules", icon: "calendar_month",       label: "Horarios" },
+  { href: "/alerts",    icon: "notifications_active", label: "Alertas"  },
+  { href: "/dashboard", icon: "dashboard",            label: "Panel"    },
+  { href: "/profile",   icon: "person",               label: "Perfil"   },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

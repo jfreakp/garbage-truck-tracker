@@ -144,3 +144,26 @@ enum NotificationType {
   ENTRY
   NEAR
 }
+
+// ---------------------------------------------------------------------------
+// WasteSchedule – recolección diferenciada por día de la semana
+// ---------------------------------------------------------------------------
+model WasteSchedule {
+  id        Int      @id @default(autoincrement())
+  dayOfWeek Int      // 0 = domingo … 6 = sábado
+  binColor  BinColor
+  startTime String   @default("07:00")
+  endTime   String   @default("15:00")
+  active    Boolean  @default(true)
+  notes     String?
+  updatedAt DateTime @updatedAt
+
+  @@unique([dayOfWeek])
+  @@index([dayOfWeek])
+}
+
+enum BinColor {
+  VERDE
+  NEGRA
+  NINGUNO
+}

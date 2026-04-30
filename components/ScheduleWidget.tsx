@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type BinType = "verde" | "negra" | "ninguno";
 
@@ -160,16 +160,45 @@ function BinIllustration({ bin }: { bin: BinType }) {
   );
 }
 
+// ── API shape ─────────────────────────────────────────────────────────────────
+interface ApiSchedule {
+  dayOfWeek: number;
+  binColor:  "VERDE" | "NEGRA" | "NINGUNO";
+  startTime: string;
+  endTime:   string;
+  active:    boolean;
+}
+
+function apiToSchedule(api: ApiSchedule[]): typeof SCHEDULE {
+  const COLOR_MAP: Record<string, BinType> = { VERDE: "verde", NEGRA: "negra", NINGUNO: "ninguno" };
+  return SCHEDULE.map((def) => {
+    const s = api.find((a) => a.dayOfWeek === def.day && a.active);
+    if (!s) return def;
+    return { ...def, bin: COLOR_MAP[s.binColor] as BinType };
+  });
+}
+
 // ── Main widget ───────────────────────────────────────────────────────────────
 export default function ScheduleWidget() {
-  const [open, setOpen] = useState(true);
+  const [open,     setOpen]     = useState(true);
+  const [apiData,  setApiData]  = useState<typeof SCHEDULE | null>(null);
 
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("eco_token") : null;
+    if (!token) return;
+    fetch("/api/schedules", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((json) => { if (json.success) setApiData(apiToSchedule(json.data)); })
+      .catch(() => { /* keep hardcoded fallback */ });
+  }, []);
+
+  const schedule   = apiData ?? SCHEDULE;
   const todayIndex = new Date().getDay(); // 0–6
-  const today      = SCHEDULE[todayIndex];
+  const today      = schedule[todayIndex];
   const cfg        = BIN_CONFIG[today.bin];
 
   // 7-day row starting from today
-  const week = Array.from({ length: 7 }, (_, i) => SCHEDULE[(todayIndex + i) % 7]);
+  const week = Array.from({ length: 7 }, (_, i) => schedule[(todayIndex + i) % 7]);
 
   return (
     <div
