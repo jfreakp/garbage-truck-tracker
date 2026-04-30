@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { clearToken } from "@/lib/api-client";
+import ScheduleWidget from "@/components/ScheduleWidget";
 
 const NAV = [
   { href: "/map",       icon: "map",                  label: "Mapa"    },
@@ -141,6 +142,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
+
+          {/* Schedule widget */}
+          <div className="px-3 pb-3">
+            <ScheduleWidget />
+          </div>
 
           {/* User card bottom */}
           <div className="p-4 border-t" style={{ borderColor: "#e2e8f0" }}>
