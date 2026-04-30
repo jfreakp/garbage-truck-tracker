@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { api } from "@/lib/api-client";
+import ScheduleWidget from "@/components/ScheduleWidget";
 
 // Ruta de prueba: inicio -4.012342, -79.204543 → fin -4.032308, -79.202414
 // 25 puntos interpolados, un ping cada 2 s
@@ -316,6 +317,9 @@ export default function MapPage() {
             </button>
           </div>
         </div>
+
+        {/* Schedule widget */}
+        <ScheduleWidget />
 
         {/* Alert card */}
         {status === "offline" && (
