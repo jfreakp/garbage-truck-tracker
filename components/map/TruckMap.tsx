@@ -43,6 +43,8 @@ interface Props {
   barrioGeos?: BarrioGeo[];
   history?: HistoryPoint[];   // breadcrumb trail for the selected truck
   routeGeos?: RouteGeo[];
+  simRoute?: [number, number][];  // live simulator path preview
+  simStep?: number;               // current ping index (to highlight progress)
 }
 
 // Centro de la ruta de prueba (Loja, Ecuador)
@@ -106,7 +108,7 @@ function makeTruckIcon(L: LeafletLib): L.DivIcon {
   });
 }
 
-export default function TruckMap({ trucks, userLat, userLng, barrioGeos = [], history = [], routeGeos = [] }: Props) {
+export default function TruckMap({ trucks, userLat, userLng, barrioGeos = [], history = [], routeGeos = [], simRoute = [], simStep = 0 }: Props) {
   const mapRef      = useRef<LeafletMap | null>(null);
   const leafletRef  = useRef<LeafletLib | null>(null);
   const divRef      = useRef<HTMLDivElement>(null);
@@ -122,6 +124,7 @@ export default function TruckMap({ trucks, userLat, userLng, barrioGeos = [], hi
   const barrioLayersRef = useRef<Layer[]>([]);
   const historyLayerRef = useRef<Layer | null>(null);
   const routeLayersRef  = useRef<Layer[]>([]);
+  const simRouteLayerRef = useRef<Layer[]>([]);
 
   /** Smoothly move a marker from (fromLat, fromLng) → (toLat, toLng) and rotate its icon. */
   function startMarkerAnimation(
@@ -202,7 +205,7 @@ export default function TruckMap({ trucks, userLat, userLng, barrioGeos = [], hi
     if (!mapRef.current || !leafletRef.current) return;
     renderLayers(leafletRef.current, mapRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trucks, userLat, userLng, barrioGeos, history, routeGeos]);
+  }, [trucks, userLat, userLng, barrioGeos, history, routeGeos, simRoute, simStep]);
 
   function renderLayers(L: LeafletLib, map: LeafletMap) {
     // ── Clear non-truck layers ──────────────────────────────────────────────
@@ -213,6 +216,8 @@ export default function TruckMap({ trucks, userLat, userLng, barrioGeos = [], hi
     historyLayerRef.current?.remove();
     routeLayersRef.current.forEach((l) => l.remove());
     routeLayersRef.current = [];
+    simRouteLayerRef.current.forEach((l) => l.remove());
+    simRouteLayerRef.current = [];
 
     // ── Truck markers (persistent + animated) ───────────────────────────────
     const activeTruckIds = new Set<number>();
@@ -390,6 +395,72 @@ export default function TruckMap({ trucks, userLat, userLng, barrioGeos = [], hi
         }
       } catch {/* ignore */}
     });
+
+    // ── Simulation route preview ─────────────────────────────────────────────
+    if (simRoute.length >= 2) {
+      // Full planned path (grey dashed)
+      const plannedLine = L.polyline(simRoute, {
+        color: "#64748b",
+        weight: 2.5,
+        opacity: 0.45,
+        dashArray: "6 5",
+      }).addTo(map);
+      simRouteLayerRef.current.push(plannedLine);
+
+      // Completed segment (green solid)
+      if (simStep > 0) {
+        const doneLine = L.polyline(simRoute.slice(0, Math.min(simStep + 1, simRoute.length)), {
+          color: "#22c55e",
+          weight: 3,
+          opacity: 0.85,
+        }).addTo(map);
+        simRouteLayerRef.current.push(doneLine);
+      }
+
+      // Start marker (flag pin)
+      const [startLat, startLng] = simRoute[0];
+      const startMarker = L.marker([startLat, startLng], {
+        icon: L.divIcon({
+          className: "",
+          html: `<div style="
+            width:28px;height:28px;border-radius:50%;
+            background:#64748b;border:2px solid #fff;
+            box-shadow:0 2px 6px rgba(0,0,0,.25);
+            display:flex;align-items:center;justify-content:center;
+          ">
+            <span class="material-symbols-outlined" style="font-size:14px;color:#fff;font-variation-settings:'FILL' 1">
+              flag
+            </span>
+          </div>`,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+        }),
+        interactive: false,
+      }).addTo(map);
+      simRouteLayerRef.current.push(startMarker);
+
+      // End marker (destination pin)
+      const [endLat, endLng] = simRoute[simRoute.length - 1];
+      const endMarker = L.marker([endLat, endLng], {
+        icon: L.divIcon({
+          className: "",
+          html: `<div style="
+            width:28px;height:28px;border-radius:50%;
+            background:#0f5238;border:2px solid #fff;
+            box-shadow:0 2px 6px rgba(0,0,0,.3);
+            display:flex;align-items:center;justify-content:center;
+          ">
+            <span class="material-symbols-outlined" style="font-size:14px;color:#fff;font-variation-settings:'FILL' 1">
+              location_on
+            </span>
+          </div>`,
+          iconSize: [28, 28],
+          iconAnchor: [14, 28],
+        }),
+        interactive: false,
+      }).addTo(map);
+      simRouteLayerRef.current.push(endMarker);
+    }
 
     // ── User home + proximity ring ───────────────────────────────────────────
     const uLat = userLat ?? DEFAULT_LAT;

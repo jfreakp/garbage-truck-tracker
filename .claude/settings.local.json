@@ -17,7 +17,12 @@
       "Bash(git commit -m ':*)",
       "Bash(git commit:*)",
       "Bash(npm run:*)",
-      "Bash(grep -l \"requireAuth\" app/api/trucks/route.ts app/api/trucks/[id]/route.ts app/api/barrios/route.ts app/api/barrios/[id]/route.ts app/api/routes/route.ts app/api/routes/[id]/route.ts app/api/devices/route.ts app/api/devices/[id]/route.ts app/api/schedules/route.ts app/api/schedules/[id]/route.ts)"
+      "Bash(grep -l \"requireAuth\" app/api/trucks/route.ts app/api/trucks/[id]/route.ts app/api/barrios/route.ts app/api/barrios/[id]/route.ts app/api/routes/route.ts app/api/routes/[id]/route.ts app/api/devices/route.ts app/api/devices/[id]/route.ts app/api/schedules/route.ts app/api/schedules/[id]/route.ts)",
+      "Bash(npm install:*)",
+      "Bash(pip install:*)",
+      "Bash(pip show:*)",
+      "Bash(python scripts/generar_memoria_tecnica.py)",
+      "Bash(dart analyze:*)"
     ]
   }
 }

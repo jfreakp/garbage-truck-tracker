@@ -4,36 +4,45 @@ import dynamic from "next/dynamic";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { api } from "@/lib/api-client";
 
-// Ruta de prueba: inicio -4.012342, -79.204543 → fin -4.032308, -79.202414
-// 25 puntos interpolados, un ping cada 2 s
-const ROUTE: [number, number][] = [
-  [-4.012342, -79.204543],
-  [-4.013174, -79.204454],
-  [-4.014006, -79.204365],
-  [-4.014838, -79.204277],
-  [-4.015670, -79.204188],
-  [-4.016502, -79.204099],
-  [-4.017334, -79.204010],
-  [-4.018166, -79.203922],
-  [-4.018998, -79.203833],
-  [-4.019830, -79.203744],
-  [-4.020662, -79.203655],
-  [-4.021494, -79.203566],
-  [-4.022326, -79.203478],
-  [-4.023158, -79.203389],
-  [-4.023990, -79.203300],
-  [-4.024822, -79.203211],
-  [-4.025654, -79.203122],
-  [-4.026486, -79.203034],
-  [-4.027318, -79.202945],
-  [-4.028150, -79.202856],
-  [-4.028982, -79.202767],
-  [-4.029814, -79.202678],
-  [-4.030646, -79.202590],
-  [-4.031478, -79.202501],
-  [-4.032308, -79.202414],
-];
-const SIM_INTERVAL_MS = 2000;
+const SIM_STEPS        = 25;
+const SIM_INTERVAL_MS  = 2000;
+const SIM_OFFSET_DEG   = 0.018; // ~2 km north offset
+
+/** Compute centroid of a GeoJSON Polygon or MultiPolygon ring. */
+function polygonCentroid(geojson: GeoJSON.Geometry): { lat: number; lng: number } | null {
+  let ring: number[][];
+  if (geojson.type === "Polygon") {
+    ring = (geojson as GeoJSON.Polygon).coordinates[0];
+  } else if (geojson.type === "MultiPolygon") {
+    ring = (geojson as GeoJSON.MultiPolygon).coordinates[0][0];
+  } else {
+    return null;
+  }
+  const sumLng = ring.reduce((s, c) => s + c[0], 0);
+  const sumLat = ring.reduce((s, c) => s + c[1], 0);
+  return { lat: sumLat / ring.length, lng: sumLng / ring.length };
+}
+
+/** Build a simulated route: N+1 points from ~2 km north of barrio centroid → centroid. */
+function buildSimRoute(barrioGeos: BarrioGeo[], barrioName: string): [number, number][] {
+  const barrio = barrioGeos.find((b) =>
+    b.name.toLowerCase().includes(barrioName.toLowerCase())
+  );
+  if (!barrio?.geojson) return [];
+
+  const center = polygonCentroid(barrio.geojson);
+  if (!center) return [];
+
+  const start = { lat: center.lat + SIM_OFFSET_DEG, lng: center.lng + SIM_OFFSET_DEG * 0.3 };
+
+  return Array.from({ length: SIM_STEPS + 1 }, (_, i) => {
+    const t = i / SIM_STEPS;
+    return [
+      start.lat + (center.lat - start.lat) * t,
+      start.lng + (center.lng - start.lng) * t,
+    ] as [number, number];
+  });
+}
 
 const TruckMap = dynamic(() => import("@/components/map/TruckMap"), {
   ssr: false,
@@ -94,9 +103,12 @@ export default function MapPage() {
   const [barrioGeos, setBarrioGeos] = useState<BarrioGeo[]>([]);
   const [history,    setHistory]    = useState<HistoryPoint[]>([]);
   const [routeGeos,  setRouteGeos]  = useState<RouteGeo[]>([]);
-  const [simRunning, setSimRunning]   = useState(false);
-  const [simStep,    setSimStep]      = useState(0);
-  const [simTruckId, setSimTruckId]  = useState<number | null>(null);
+  const [simRunning,    setSimRunning]    = useState(false);
+  const [simStep,       setSimStep]       = useState(0);
+  const [simTruckId,    setSimTruckId]    = useState<number | null>(null);
+  const [simRoute,      setSimRoute]      = useState<[number, number][]>([]);
+  const [isAdmin,       setIsAdmin]       = useState(false);
+  const [simEnabled,    setSimEnabled]    = useState(false);
   const simRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchTrucks = useCallback(async () => {
@@ -172,18 +184,29 @@ export default function MapPage() {
   function startSim() {
     const truckId = simTruckId ?? trucks[0]?.id;
     if (!truckId || simRef.current) return;
+
+    // Build route toward the user's own barrio (fallback: first barrio available)
+    const targetName = user?.barrio?.name ?? barrioGeos[0]?.name ?? "";
+    const route = buildSimRoute(barrioGeos, targetName);
+    if (!route.length) return;
+
+    setSimRoute(route);
     setSimRunning(true);
     let step = 0;
     setSimStep(0);
 
     async function tick() {
-      const [lat, lng] = ROUTE[step];
+      const [lat, lng] = route[step];
       try {
         await api.post("/api/trucks/location", { truckId, lat, lng });
         await fetchTrucks();
       } catch {/* silent */}
-      step = (step + 1) % ROUTE.length;
+      step++;
       setSimStep(step);
+      // Stop automatically when route ends
+      if (step >= route.length) {
+        stopSim();
+      }
     }
 
     tick();
@@ -193,9 +216,30 @@ export default function MapPage() {
   function stopSim() {
     if (simRef.current) { clearInterval(simRef.current); simRef.current = null; }
     setSimRunning(false);
+    setSimRoute([]);
   }
 
   useEffect(() => () => { if (simRef.current) clearInterval(simRef.current); }, []);
+
+  // ── Admin / sim-enabled gate ─────────────────────────────────────────────
+  useEffect(() => {
+    const raw = localStorage.getItem("eco_user");
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as { role?: string };
+        setIsAdmin(parsed.role === "ADMIN");
+      } catch {/* ignore */}
+    }
+    const flag = localStorage.getItem("sim_enabled");
+    // default true when key is absent; false only when explicitly set to "false"
+    setSimEnabled(flag !== "false");
+  }, []);
+
+  // Stop sim automatically if it becomes hidden
+  useEffect(() => {
+    if (simRunning && (!isAdmin || !simEnabled)) stopSim();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, simEnabled]);
   // ────────────────────────────────────────────────────────────────────────
 
   const activeTruck = trucks.find((t) => t.lat != null);
@@ -223,6 +267,8 @@ export default function MapPage() {
           barrioGeos={barrioGeos}
           history={history}
           routeGeos={routeGeos}
+          simRoute={simRoute}
+          simStep={simStep}
         />
       </div>
 
@@ -401,7 +447,7 @@ export default function MapPage() {
       </div>
 
       {/* ── Simulation control ── */}
-      <div
+      {isAdmin && simEnabled && <div
         className="absolute bottom-28 left-4 md:bottom-8 md:left-6 z-20 rounded-2xl overflow-hidden flex flex-col gap-0"
         style={{
           background: "rgba(255,255,255,.97)",
@@ -455,11 +501,11 @@ export default function MapPage() {
               <div className="w-full rounded-full overflow-hidden" style={{ height: 4, background: "#e7eeff" }}>
                 <div
                   className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${Math.round(((simStep + 1) / ROUTE.length) * 100)}%`, background: "#0f5238" }}
+                  style={{ width: `${simRoute.length ? Math.round((simStep / simRoute.length) * 100) : 0}%`, background: "#0f5238" }}
                 />
               </div>
               <p className="text-[10px] text-right" style={{ color: "#707973" }}>
-                Punto {simStep + 1} / {ROUTE.length}
+                Punto {simStep} / {simRoute.length}
               </p>
             </div>
           )}
@@ -480,7 +526,7 @@ export default function MapPage() {
             {simRunning ? "Detener" : "Iniciar simulación"}
           </button>
         </div>
-      </div>
+      </div>}
 
       {/* GPS live badge */}
       <div className="absolute top-4 right-4 z-20">

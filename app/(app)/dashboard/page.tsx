@@ -43,9 +43,12 @@ function StatCard({
 }
 
 export default function DashboardPage() {
-  const [trucks,  setTrucks]  = useState<Truck[]>([]);
-  const [barrios, setBarrios] = useState<Barrio[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [trucks,     setTrucks]     = useState<Truck[]>([]);
+  const [barrios,    setBarrios]    = useState<Barrio[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [simEnabled,    setSimEnabled]    = useState(true);
+  const [clearingLogs,  setClearingLogs]  = useState(false);
+  const [logsCleared,   setLogsCleared]   = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -60,6 +63,26 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const flag = localStorage.getItem("sim_enabled");
+    setSimEnabled(flag !== "false");
+  }, []);
+
+  function toggleSim(val: boolean) {
+    setSimEnabled(val);
+    localStorage.setItem("sim_enabled", val ? "true" : "false");
+  }
+
+  async function clearNotificationLogs() {
+    setClearingLogs(true);
+    try {
+      await api.delete("/api/notifications/logs");
+      setLogsCleared(true);
+      setTimeout(() => setLogsCleared(false), 3000);
+    } catch {/* silent */}
+    finally { setClearingLogs(false); }
+  }
 
   const active    = trucks.filter((t) => t.lat != null).length;
   const inactive  = trucks.length - active;
@@ -290,6 +313,85 @@ export default function DashboardPage() {
                     })}
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* ── Herramientas ── */}
+            <div className="mb-8">
+              <h2 className="text-base font-semibold mb-4" style={{ color: "#111c2c" }}>Herramientas</h2>
+              <div className="flex flex-col gap-3">
+
+                {/* Simulador GPS */}
+                <div
+                  className="flex items-center gap-4 p-5 rounded-xl border"
+                  style={{ background: "#fff", borderColor: "#e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,.05)" }}
+                >
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: simEnabled ? "#dcfce7" : "#f1f5f9" }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 26, color: simEnabled ? "#0f5238" : "#707973", fontVariationSettings: "'FILL' 1" }}
+                    >
+                      science
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold" style={{ color: "#111c2c" }}>Simulador GPS</p>
+                    <p className="text-xs mt-0.5" style={{ color: "#707973" }}>
+                      {simEnabled
+                        ? "Panel de simulación visible en el mapa"
+                        : "Panel de simulación oculto en el mapa"}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => toggleSim(!simEnabled)}
+                    className="relative w-12 h-6 rounded-full transition-colors duration-200 flex-shrink-0 focus:outline-none"
+                    style={{ background: simEnabled ? "#0f5238" : "#bfc9c1" }}
+                    aria-label="Activar/desactivar simulador"
+                  >
+                    <span
+                      className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-200"
+                      style={{ left: simEnabled ? "calc(100% - 1.375rem)" : "0.125rem" }}
+                    />
+                  </button>
+                </div>
+
+                {/* Limpiar logs de notificación */}
+                <div
+                  className="flex items-center gap-4 p-5 rounded-xl border"
+                  style={{ background: "#fff", borderColor: "#e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,.05)" }}
+                >
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: logsCleared ? "#dcfce7" : "#fff7ed" }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 26, color: logsCleared ? "#0f5238" : "#d97706", fontVariationSettings: "'FILL' 1" }}
+                    >
+                      {logsCleared ? "check_circle" : "notification_important"}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold" style={{ color: "#111c2c" }}>Logs de notificación</p>
+                    <p className="text-xs mt-0.5" style={{ color: "#707973" }}>
+                      {logsCleared
+                        ? "Logs borrados — la próxima simulación notificará de nuevo"
+                        : "Borra el historial para volver a recibir notificaciones de prueba"}
+                    </p>
+                  </div>
+                  <button
+                    onClick={clearNotificationLogs}
+                    disabled={clearingLogs || logsCleared}
+                    className="px-4 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95 disabled:opacity-50 flex-shrink-0"
+                    style={{ background: logsCleared ? "#dcfce7" : "#fff7ed", color: logsCleared ? "#0f5238" : "#d97706", border: `1px solid ${logsCleared ? "#bbf7d0" : "#fed7aa"}` }}
+                  >
+                    {clearingLogs ? "Borrando…" : logsCleared ? "Listo" : "Limpiar"}
+                  </button>
+                </div>
+
               </div>
             </div>
 
