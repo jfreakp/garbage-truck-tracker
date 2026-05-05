@@ -54,16 +54,16 @@ export async function updateTruckLocation(input: UpdateLocationInput) {
 
   if (!truck) throw new NotFoundError("Truck");
 
-  // Persist new coordinates + append to history
-  await prisma.$transaction([
-    prisma.truck.update({
-      where: { id: input.truckId },
-      data: { lat: input.lat, lng: input.lng },
-    }),
-    prisma.locationHistory.create({
-      data: { truckId: input.truckId, lat: input.lat, lng: input.lng },
-    }),
-  ]);
+  // Persist new coordinates + append to history.
+  // NOTE: $transaction is incompatible with PgBouncer in transaction-pooler
+  // mode (Supabase default) — run the two writes sequentially instead.
+  await prisma.truck.update({
+    where: { id: input.truckId },
+    data: { lat: input.lat, lng: input.lng },
+  });
+  await prisma.locationHistory.create({
+    data: { truckId: input.truckId, lat: input.lat, lng: input.lng },
+  });
 
   // ── Geo detection ──────────────────────────────────────────────────────────
 
